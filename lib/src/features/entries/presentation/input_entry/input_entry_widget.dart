@@ -22,6 +22,8 @@ class InputEntryWidget extends ConsumerStatefulWidget {
 class _InputEntryWidgetState extends ConsumerState<InputEntryWidget> {
   late DateTime pickedDate;
 
+  late bool isEdited;
+
   late final FixedExtentScrollController wholeNumberController;
   late ListWheelChildLoopingListDelegate wholeNumberDelegate;
 
@@ -48,6 +50,9 @@ class _InputEntryWidgetState extends ConsumerState<InputEntryWidget> {
   @override
   void initState() {
     super.initState();
+
+    isEdited = widget.editedEntry != null;
+
     wholeNumberDelegate = _createDelegate(300);
     firstDecimalDelegate = _createDelegate(10);
     secondDecimalDelegate = _createDelegate(10);
@@ -103,8 +108,8 @@ class _InputEntryWidgetState extends ConsumerState<InputEntryWidget> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Weight',
+        Text(
+          isEdited ? 'Edit weight entry' : 'Add weight entry',
         ),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
