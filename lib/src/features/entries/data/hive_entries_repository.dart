@@ -45,6 +45,11 @@ class HiveEntriesRepository {
     return entries.isNotEmpty ? entries : [];
   }
 
+  // fetch
+  List<Entry> fetchEntriesList() {
+    return _getEntriesList();
+  }
+
   // watch
   Stream<List<Entry>> watchEntriesList() {
     return box
@@ -56,6 +61,13 @@ class HiveEntriesRepository {
 
 final entriesRepositoryProvider = Provider<HiveEntriesRepository>((ref) {
   throw UnimplementedError();
+});
+
+final entriesListFutureProvider =
+    FutureProvider.autoDispose<List<Entry>>((ref) async {
+  await Future.delayed(const Duration(seconds: 2));
+  final entriesRepository = ref.watch(entriesRepositoryProvider);
+  return entriesRepository.fetchEntriesList();
 });
 
 final entriesListStreamProvider =

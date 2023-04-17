@@ -38,9 +38,8 @@ class InputEntryWidgetController {
     final decimalPointIndex = separatedWeight.indexWhere((e) => e == '.');
 
     final wholeNumbersList = [];
-    final firstDecimal = int.parse(separatedWeight[decimalPointIndex + 1]);
-    final secondDecimal = int.parse(separatedWeight.last);
 
+    // set whole number
     for (var i = 0; i < separatedWeight.length; i++) {
       if (i < decimalPointIndex) {
         wholeNumbersList.add(separatedWeight[i]);
@@ -48,8 +47,22 @@ class InputEntryWidgetController {
         break;
       }
     }
-
     final wholeNumber = int.parse(wholeNumbersList.join());
+
+    // set first decimal
+    final firstDecimal = int.parse(separatedWeight[decimalPointIndex + 1]);
+
+    // set secondDecimal
+    final int secondDecimal;
+    // after decimal dot length
+    // e.g - 85.[3] will return 1 and 85.[34] will return 2
+    if (((separatedWeight.length - 1) - decimalPointIndex) > 1) {
+      // if lenght of items after decimalDot equals 2 - set secondDecimal to the last element of the separatedWeight
+      secondDecimal = int.parse(separatedWeight.last);
+    } else {
+      // if lenght of items afterDecimalDot equals 1 - set secondDecimal to 0
+      secondDecimal = 0;
+    }
 
     return [wholeNumber, firstDecimal, secondDecimal];
   }

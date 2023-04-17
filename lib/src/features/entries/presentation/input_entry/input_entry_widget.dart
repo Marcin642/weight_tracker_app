@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:weight_tracker_app/src/common_widgets/async_value_widget.dart';
 import 'package:weight_tracker_app/src/features/entries/data/hive_entries_repository.dart';
 import 'package:weight_tracker_app/src/features/entries/domain/entry.dart';
 import 'package:weight_tracker_app/src/features/entries/presentation/input_entry/input_entry_widget_controller.dart';
@@ -20,6 +21,8 @@ class InputEntryWidget extends ConsumerStatefulWidget {
 }
 
 class _InputEntryWidgetState extends ConsumerState<InputEntryWidget> {
+  bool isInitialized = false;
+
   late DateTime pickedDate;
 
   late bool isEdited;
@@ -47,6 +50,49 @@ class _InputEntryWidgetState extends ConsumerState<InputEntryWidget> {
     );
   }
 
+  void _initializeControllers({
+    List<int>? separatedWeight,
+  }) {
+    wholeNumberController = FixedExtentScrollController(
+        initialItem: separatedWeight?.elementAt(0) ?? 0);
+    firstDecimalController = FixedExtentScrollController(
+        initialItem: separatedWeight?.elementAt(1) ?? 0);
+    secondDecimalController = FixedExtentScrollController(
+        initialItem: separatedWeight?.elementAt(2) ?? 0);
+  }
+
+  // Function used to initialize important parameters such as:
+  // picked date and number controllers.
+  void _initialize(List<Entry> entriesList) {
+    if (isEdited) {
+      pickedDate = widget.editedEntry!.date;
+      // *entry is edited*
+      // pickedDate = widget.editedEntry!.date;
+      final separatedWeight = ref
+          .read(inputEntryWidgetControllerProvider)
+          .separateNumber(widget.editedEntry!.weight);
+
+      _initializeControllers(separatedWeight: separatedWeight);
+    } else {
+      pickedDate = DateTime.now();
+      // *entry is not edited*
+      if (entriesList.isNotEmpty) {
+        // wheel value picker should be initialized with previous values
+        final separatedWeight = ref
+            .read(inputEntryWidgetControllerProvider)
+            .separateNumber(entriesList.first.weight);
+
+        _initializeControllers(separatedWeight: separatedWeight);
+      } else {
+        // wheel value picker should be initialized with default values - 0, 0, 0
+        _initializeControllers();
+      }
+    }
+
+    // with this variable set to true, this function will be called only once during this widgets lifetime
+    isInitialized = true;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -56,43 +102,6 @@ class _InputEntryWidgetState extends ConsumerState<InputEntryWidget> {
     wholeNumberDelegate = _createDelegate(300);
     firstDecimalDelegate = _createDelegate(10);
     secondDecimalDelegate = _createDelegate(10);
-
-    if (widget.editedEntry != null) {
-      // entry is edited
-      pickedDate = widget.editedEntry!.date;
-
-      final separatedWeight = ref
-          .read(inputEntryWidgetControllerProvider)
-          .separateNumber(widget.editedEntry!.weight);
-
-      wholeNumberController =
-          FixedExtentScrollController(initialItem: separatedWeight[0]);
-      firstDecimalController =
-          FixedExtentScrollController(initialItem: separatedWeight[1]);
-      secondDecimalController =
-          FixedExtentScrollController(initialItem: separatedWeight[2]);
-    } else {
-      // entry is not edited
-      pickedDate = DateTime.now();
-      // set the wheelpicker value to the latest entry weight val
-      final lastEntry = ref.read(entriesListStreamProvider).value?.first;
-      if (lastEntry != null) {
-        final separatedWeight = ref
-            .read(inputEntryWidgetControllerProvider)
-            .separateNumber(lastEntry.weight);
-
-        wholeNumberController =
-            FixedExtentScrollController(initialItem: separatedWeight[0]);
-        firstDecimalController =
-            FixedExtentScrollController(initialItem: separatedWeight[1]);
-        secondDecimalController =
-            FixedExtentScrollController(initialItem: separatedWeight[2]);
-      } else {
-        wholeNumberController = FixedExtentScrollController();
-        firstDecimalController = FixedExtentScrollController();
-        secondDecimalController = FixedExtentScrollController();
-      }
-    }
   }
 
   @override
@@ -105,78 +114,86 @@ class _InputEntryWidgetState extends ConsumerState<InputEntryWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          isEdited ? 'Edit weight entry' : 'Add weight entry',
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+    final entriesValue = ref.watch(entriesListFutureProvider);
+    return AsyncValueWidget(
+      value: entriesValue,
+      data: (entriesList) {
+        // Since, I'm populating wheel value pickers with data from my repository
+        // this function cannot be executed in initState
+        if (!isInitialized) _initialize(entriesList);
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            WheelValuePicker(
-              controller: wholeNumberController,
-              delegate: wholeNumberDelegate,
+            Text(
+              isEdited ? 'Edit weight entry' : 'Add weight entry',
             ),
-            const Text(
-              '.',
-              style: TextStyle(fontSize: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                WheelValuePicker(
+                  controller: wholeNumberController,
+                  delegate: wholeNumberDelegate,
+                ),
+                const Text(
+                  '.',
+                  style: TextStyle(fontSize: 24),
+                ),
+                WheelValuePicker(
+                  controller: firstDecimalController,
+                  delegate: firstDecimalDelegate,
+                ),
+                WheelValuePicker(
+                  controller: secondDecimalController,
+                  delegate: secondDecimalDelegate,
+                ),
+              ],
             ),
-            WheelValuePicker(
-              controller: firstDecimalController,
-              delegate: firstDecimalDelegate,
-            ),
-            WheelValuePicker(
-              controller: secondDecimalController,
-              delegate: secondDecimalDelegate,
-            ),
-          ],
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            TextButton(
-              onPressed: () async {
-                final result = await showDatePicker(
-                  context: context,
-                  initialDate: DateTime.now(),
-                  firstDate: DateTime(2020),
-                  lastDate: DateTime.now(),
-                );
-
-                if (result != null) {
-                  setState(() {
-                    pickedDate = result;
-                  });
-                }
-              },
-              child: Text(
-                DateFormat.yMMMEd().format(pickedDate),
-              ),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                final wholeNumber = wholeNumberDelegate
-                    .trueIndexOf(wholeNumberController.selectedItem);
-                final firstDecimal = firstDecimalDelegate
-                    .trueIndexOf(firstDecimalController.selectedItem);
-                final secondDecimal = secondDecimalDelegate
-                    .trueIndexOf(secondDecimalController.selectedItem);
-                final weight =
-                    double.parse('$wholeNumber.$firstDecimal$secondDecimal');
-
-                ref.read(inputEntryWidgetControllerProvider).submitEntry(
-                      editedEntry: widget.editedEntry,
-                      weight: weight,
-                      date: pickedDate,
-                      onSuccess: () => Navigator.of(context).pop(),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                TextButton(
+                  onPressed: () async {
+                    final result = await showDatePicker(
+                      context: context,
+                      initialDate: DateTime.now(),
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime.now(),
                     );
-              },
-              child: const Text('Submit'),
+                    if (result != null) {
+                      setState(() {
+                        pickedDate = result;
+                      });
+                    }
+                  },
+                  child: Text(
+                    DateFormat.yMMMEd().format(pickedDate),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    final wholeNumber = wholeNumberDelegate
+                        .trueIndexOf(wholeNumberController.selectedItem);
+                    final firstDecimal = firstDecimalDelegate
+                        .trueIndexOf(firstDecimalController.selectedItem);
+                    final secondDecimal = secondDecimalDelegate
+                        .trueIndexOf(secondDecimalController.selectedItem);
+                    final weight = double.parse(
+                        '$wholeNumber.$firstDecimal$secondDecimal');
+
+                    ref.read(inputEntryWidgetControllerProvider).submitEntry(
+                          editedEntry: widget.editedEntry,
+                          weight: weight,
+                          date: pickedDate,
+                          onSuccess: () => Navigator.of(context).pop(),
+                        );
+                  },
+                  child: const Text('Submit'),
+                ),
+              ],
             ),
           ],
-        ),
-      ],
+        );
+      },
     );
   }
 }
