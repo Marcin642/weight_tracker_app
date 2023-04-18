@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:weight_tracker_app/src/features/layout/presentation/home_screen.dart';
 import 'package:weight_tracker_app/src/features/layout/presentation/logbook_screen.dart';
 import 'package:weight_tracker_app/src/features/layout/presentation/shell_scaffold/shell_scaffold.dart';
 
@@ -24,7 +25,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/',
             name: AppRoute.home.name,
-            builder: (context, state) => const Text('Home screen'),
+            builder: (context, state) => const HomeScreen(),
           ),
           GoRoute(
             path: '/logbook',

@@ -46,7 +46,8 @@ class HiveEntriesRepository {
   }
 
   // fetch
-  List<Entry> fetchEntriesList() {
+  Future<List<Entry>> fetchEntriesList() async {
+    // await Future.delayed(const Duration(seconds: 2));
     return _getEntriesList();
   }
 
@@ -65,7 +66,6 @@ final entriesRepositoryProvider = Provider<HiveEntriesRepository>((ref) {
 
 final entriesListFutureProvider =
     FutureProvider.autoDispose<List<Entry>>((ref) async {
-  await Future.delayed(const Duration(seconds: 2));
   final entriesRepository = ref.watch(entriesRepositoryProvider);
   return entriesRepository.fetchEntriesList();
 });

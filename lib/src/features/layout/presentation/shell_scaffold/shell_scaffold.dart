@@ -41,6 +41,7 @@ class _ShellScaffoldState extends State<ShellScaffold> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color.fromARGB(255, 53, 55, 69),
       appBar: AppBar(
         title: Text(_tabs[_currentIndex].label ?? ''),
       ),
